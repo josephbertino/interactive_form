@@ -7,11 +7,8 @@ const nameField = document.querySelector('input#name');
 const emailField = document.querySelector('input#email');
 const activitiesBox = document.querySelector('#activities-box');
 const activitiesCheckboxes = document.querySelectorAll('#activities-box input[type="checkbox"]');
-const selectPayment = document.querySelector('select#payment');
 
-// Credit Card fields
-const expMonth = document.querySelector("select#exp-month");
-const expYear = document.querySelector("select#exp-year");
+// Credit Card input fields
 const ccNum = document.querySelector("input#cc-num");
 const ccZip = document.querySelector("input#zip");
 const ccCVV = document.querySelector("input#cvv");
@@ -21,9 +18,27 @@ const form = document.querySelector('form');
 form.reset();
 
 //////////////////// BEGIN UTILITY FUNCTIONS ////////////////////
+// Hide the element
 const noDisplay = (elem) => { elem.style.display = 'none'; };
 
+// Show the element
 const yesDisplay = (elem) => { elem.style.display = ''; };
+
+// Display indicators that form element has invalid input
+const showFieldError = (elem) => {
+  const elemParent = elem.parentElement;
+  elemParent.classList.add('not-valid');
+  elemParent.classList.remove('valid');
+  elemParent.lastElementChild.style.display='inline';
+};
+
+// Display indicators that form element has valid input
+const showFieldSuccess = (elem) => {
+  const elemParent = elem.parentElement;
+  elemParent.classList.add('valid');
+  elemParent.classList.remove('not-valid');
+  elemParent.lastElementChild.style.display='none';
+};
 //////////////////// END UTILITY FUNCTIONS //////////////////////
 
 
@@ -44,33 +59,26 @@ jobRoleSelect.addEventListener('change', (e) => {
   }
 });
 
-// 5.1) Disable the "Color" <select> element.
+//////////////// BEGIN T SHIRT //////////////
+
+// Disable the "Color" <select> element by default
 const selectColor = document.querySelector('select#color');
 selectColor.disabled = true;
 
-// 5.2) Program the "Design" <select> element to listen for user changes.
+// Program the "Design" <select> element to listen for user changes.
 const selectDesign = document.querySelector('select#design');
 selectDesign.addEventListener('change', (e) => {
   // The "Color" <select> element should be enabled.
   selectColor.disabled = false;
+
   // The "Color" dropdown menu should display only the color options associated with the selected design.
-
   // Find out which tshirt design was selected
-  var designValue = '';
-  [...selectDesign.children].forEach((design, idx) => {
-    if (design.selected === true) {
-      designValue = design.value;
-    }
-  });
+  var designValue = selectDesign.selectedOptions[0].value;
 
-  [...selectColor.children].forEach((colorOpt, idx) => {
+  [...selectColor.children].forEach((colorOpt) => {
     if (colorOpt.getAttribute('data-theme') === designValue) {
-      // console.log('showing');
-      // colorOpt.setAttribute('hidden',false);
       colorOpt.hidden = false;
     } else {
-      // console.log('hiding');
-      // colorOpt.setAttribute('hidden',true);
       colorOpt.hidden = true;
     }
   });
@@ -78,8 +86,9 @@ selectDesign.addEventListener('change', (e) => {
   // The user changed the design selection, so the color options have updated. Thus prompt them to select the color again by resetting the dropdown.
   selectColor.selectedIndex = 0;
 });
+//////////////// END T SHIRT //////////////
 
-// 6) The "Total: $" element below the "Register for Activities" section should update to reflect the sum of the cost of the user’s selected activities.
+// The "Total: $" summation element below the "Register for Activities" section should update to reflect the sum cost of the user’s selected activities.
 const activities = document.querySelector('fieldset#activities');
 const totalString = document.querySelector('p#activities-cost');
 let sumTotal = 0;
@@ -95,176 +104,168 @@ activities.addEventListener('change', (e) => {
   totalString.innerHTML = `Total: $${sumTotal}`;
 });
 
-// 7.1) When the form first loads, "Credit Card" should be displayed
-selectPayment.selectedIndex = 1;
-
-// 7.2) and the credit card payment section should be the only payment section displayed in the form’s UI.
-
-const payPaypal = document.querySelector('div#paypal');
-noDisplay(payPaypal);
-
-const payBitcoin = document.querySelector('div#bitcoin');
-noDisplay(payBitcoin);
-
-// 7.3)  And when the user selects one of the payment options from the "I'm going to pay with" drop down menu, the form should update to display only the chosen payment method section.
+////////////// BEGIN PAY METHOD /////////////////
 const payOptions = document.querySelectorAll('fieldset.payment-methods > div');
 
-selectPayment.addEventListener('change', (e) => {
-  const payMethodSelected = e.target.value;
-
-  [...payOptions].forEach((option, idx) => {
+const showRelevantPayElements = (payMethod) => {
+  /**
+   * Hide all pay method elements that don't apply to the selected payment method.
+   *
+   * @param {string} payMethod  The payment method selected from the <select> element
+   *
+   */
+  [...payOptions].forEach((option) => {
     // Ignoring <div> element with no id because that's the dropdown menu, and I don't want to hide that.
     if (option.className !== "payment-method-box") {
-      if (option.id === payMethodSelected) {
+      if (option.id === payMethod) {
         yesDisplay(option);
       } else {
         noDisplay(option);
       }
     }
   });
-});
+};
 
-// 8) Users shouldn’t be able to submit a form without the required information, or with invalid information. Create form validation
+// The credit card payment option should be the default when the page loads, and he credit card payment section should be the only payment section displayed in the form’s UI on page load
+const ccOption = document.querySelector('option[value="credit-card"]');
+ccOption.selected = true;
+showRelevantPayElements(ccOption.value);
+
+// When the user selects one of the payment options from the "I'm going to pay with" drop down menu, the form should update to display only the chosen payment method section.
+const selectPayment = document.querySelector('select#payment');
+selectPayment.addEventListener('change', (e) => {
+  showRelevantPayElements(e.target.value)
+});
+////////////// END PAY METHOD /////////////////
+
+/////////////// BEGIN FORM VALIDATION /////////////
+
 const nameValidate = () => {
+  /**
+   * Confirm the name field is not blank or empty
+   */
   const name = nameField.value;
-  const blankRE = /^\s+$/;
-  // The name cannot be empty...
+  const somethingRE = /\S/;
   return (name.length > 0 &&
-  // ...or blank (all whitespace)
-          !blankRE.test(name));
+          somethingRE.test(name));
 };
 
 const emailValidate = () => {
+  /**
+   * Confirm the email address is kosher.
+   * At least one not-@ symbol, followed by '@', followed by at least one not-@ and not-., followed by '.com'
+   */
   const emailRE = /^[^@]+@[^@.]+\.com$/;
   return emailRE.test(emailField.value);
 };
 
 const activitiesValidate = () => {
-  [...activitiesCheckboxes].forEach((cb, idx) => {
-    if (cb.checked) {
-      return true;
-    }
-  });
+  /**
+   * Confirm that at least one activities checkbox is checked
+   */
+  const isChecked = (cb) => cb.checked === true;
 
-  return false;
-};
-
-const creditValidate = () => {
-
-  let retval = true;
-
-  if (!cardNumberValidate()) {
-    showFormError(ccNum);
-    retval = false;
-  } else {
-    showFormSuccess(ccNum);
-  }
-
-  if (!zipCodeValidate()) {
-    showFormError(ccZip);
-    retval = false;
-  } else {
-    showFormSuccess(ccZip);
-  }
-
-  if (!cvvValidate()) {
-    showFormError(ccCVV);
-    retval = false;
-  } else {
-    showFormSuccess(ccCVV);
-  }
-
-  if (!expMonthValidate()) {
-    showFormError(expMonth);
-    retval = false;
-  } else {
-    showFormSuccess(expMonth);
-  }
-
-  if (!expYearValidate()) {
-    showFormError(expYear);
-    retval = false;
-  } else {
-    showFormSuccess(expYear);
-  }
-
-  return retval;
+  return [...activitiesCheckboxes].some(isChecked);
 };
 
 const cardNumberValidate = () => {
+  /**
+   * CC num should be 13-16 digits, nothing else.
+   */
   const ccRE = /^\d{13,16}$/;
   return ccRE.test(ccNum.value);
 };
 
 const zipCodeValidate = () => {
+  /**
+   * CC zip should be 5 digits, nothing else.
+   */
   const zipRE = /^\d{5}$/;
   return zipRE.test(ccZip.value);
 };
 
 const cvvValidate = () => {
+  /**
+   * CC cvv should be 3 digits, nothing else.
+   */
   const cvvRE = /^\d{3}$/;
   return cvvRE.test(ccCVV.value);
 };
 
-const expMonthValidate = () => {
-  return (expMonth.selectedIndex !== 0);
+const creditValidate = () => {
+  /**
+   * Validate the credit card entry fields.
+   * If any field is invalid, return false to signal to form to prevent default submission behavior.
+   * Show form-error or form-success feedback for each each field
+   */
+
+  let retval = true;
+
+  if (!cardNumberValidate()) {
+    showFieldError(ccNum);
+    retval = false;
+  } else {
+    showFieldSuccess(ccNum);
+  }
+
+  if (!zipCodeValidate()) {
+    showFieldError(ccZip);
+    retval = false;
+  } else {
+    showFieldSuccess(ccZip);
+  }
+
+  if (!cvvValidate()) {
+    showFieldError(ccCVV);
+    retval = false;
+  } else {
+    showFieldSuccess(ccCVV);
+  }
+
+  return retval;
 };
 
-const expYearValidate = () => {
-  return (expYear.selectedIndex !== 0);
-};
-
-const showFormError = (elem) => {
-  const elemParent = elem.parentElement;
-  elemParent.classList.add('not-valid');
-  elemParent.classList.remove('valid');
-  elemParent.lastElementChild.style.display='inline';
-};
-
-const showFormSuccess = (elem) => {
-  const elemParent = elem.parentElement;
-  elemParent.classList.add('valid');
-  elemParent.classList.remove('not-valid');
-  elemParent.lastElementChild.style.display='none';
-};
-
+/// Program the form element to listen to the submit event. When the form submission is detected, each required form field or section should be validated to ensure that they have been filled out correctly. If any of the following required fields is not valid, the form’s submission should be prevented.
 form.addEventListener('submit', (e) => {
 
   if (!nameValidate()) {
     e.preventDefault();
-    showFormError(nameField);
+    showFieldError(nameField);
   } else {
-    showFormSuccess(nameField);
+    showFieldSuccess(nameField);
   }
 
   if (!emailValidate()) {
     e.preventDefault();
-    showFormError(emailField);
+    showFieldError(emailField);
   } else {
-    showFormSuccess(emailField);
+    showFieldSuccess(emailField);
   }
 
   if (!activitiesValidate()) {
     e.preventDefault();
-    showFormError(activitiesBox);
+    showFieldError(activitiesBox);
   } else {
-    showFormSuccess(activitiesBox);
+    showFieldSuccess(activitiesBox);
   }
 
+  // If the payment method is not "credit-card", the creditValidate() function will not run
+  // I let creditValidate() handle the displaying of form errors for CC input fields
   if (selectPayment.value === 'credit-card' && !creditValidate()) {
     e.preventDefault();
   }
 });
+/////////////// END FORM VALIDATION /////////////
 
-// 9) Make the focus states of the activities more obvious to all users.
+// Program all of the activity checkbox input elements to listen for the focus and blur events.
+[...activitiesCheckboxes].forEach((cb) => {
+  cb.addEventListener('focus', (e) => {
+    const parLabel = e.target.parentElement;
+    parLabel.classList.add('focus');
+  });
 
-// 9.1) Program all of the activity checkbox input elements to listen for the focus and blur events.
-activitiesBox.addEventListener('focusin', (e) => {
-  const parLabel = e.target.parentElement;
-  parLabel.classList.add('focus');
-});
-
-activitiesBox.addEventListener('focusout', (e) => {
-  const parLabel = e.target.parentElement;
-  parLabel.classList.remove('focus');
+  cb.addEventListener('blur', (e) => {
+    const parLabel = e.target.parentElement;
+    parLabel.classList.remove('focus');
+  });
 });
