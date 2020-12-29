@@ -25,11 +25,17 @@ const noDisplay = (elem) => { elem.style.display = 'none'; };
 const yesDisplay = (elem) => { elem.style.display = ''; };
 
 // Display indicators that form element has invalid input
-const showFieldError = (elem) => {
+const showFieldError = (elem, errMsg=null) => {
   const elemParent = elem.parentElement;
+  const hint = elemParent.lastElementChild;
+
   elemParent.classList.add('not-valid');
   elemParent.classList.remove('valid');
-  elemParent.lastElementChild.style.display='inline';
+  hint.style.display = 'inline';
+
+  if (errMsg) {
+    hint.textContent = errMsg;
+  }
 };
 
 // Display indicators that form element has valid input
@@ -39,6 +45,17 @@ const showFieldSuccess = (elem) => {
   elemParent.classList.remove('not-valid');
   elemParent.lastElementChild.style.display='none';
 };
+
+// This function exists to avoid writing this block 10 times over
+// Alter form field UI depending on validity of input, then return boolean
+const fieldValidSwitch = (conditional, elem, errMsg=null) => {
+  if (!conditional) {
+    showFieldError(elem, errMsg);
+  } else {
+    showFieldSuccess(elem);
+  }
+  return conditional;
+}
 //////////////////// END UTILITY FUNCTIONS //////////////////////
 
 
@@ -88,6 +105,7 @@ selectDesign.addEventListener('change', (e) => {
 });
 //////////////// END T SHIRT //////////////
 
+//////////////// BEGIN ACTIVITIES ////////////////
 // The "Total: $" summation element below the "Register for Activities" section should update to reflect the sum cost of the user’s selected activities.
 const activities = document.querySelector('fieldset#activities');
 const totalString = document.querySelector('p#activities-cost');
@@ -103,6 +121,30 @@ activities.addEventListener('change', (e) => {
 
   totalString.innerHTML = `Total: $${sumTotal}`;
 });
+
+// Prevent users from registering from conflicting activities
+[...activitiesCheckboxes].forEach((cb) => {
+  // Only add listening functionality to activities that are time-sensitive
+  if (cb.hasAttribute('data-day-and-time')) {
+    cb.addEventListener('change', (e) => {
+      const thisCB = e.target;
+      const thisDate = thisCB.getAttribute('data-day-and-time');
+
+      // Find all conflicting activities (including this one)
+      const conflictingActivities = document.querySelectorAll(`#activities-box input[data-day-and-time="${thisDate}"]`);
+
+      [...conflictingActivities].forEach((activity) => {
+        if (activity !== thisCB) {
+          activity.disabled = thisCB.checked;
+          activity.parentElement.classList.toggle('disabled');
+        }
+      });
+    });
+  }
+});
+
+//////////////// END ACTIVITIES ////////////////
+
 
 ////////////// BEGIN PAY METHOD /////////////////
 const payOptions = document.querySelectorAll('fieldset.payment-methods > div');
@@ -139,15 +181,22 @@ selectPayment.addEventListener('change', (e) => {
 ////////////// END PAY METHOD /////////////////
 
 /////////////// BEGIN FORM VALIDATION /////////////
-
 const nameValidate = () => {
   /**
    * Confirm the name field is not blank or empty
    */
   const name = nameField.value;
   const somethingRE = /\S/;
-  return (name.length > 0 &&
-          somethingRE.test(name));
+  const conditional = name.length > 0 && somethingRE.test(name);
+  let errMsg = null;
+
+  if (!(name.length > 0)) {
+    errMsg = 'Name field cannot be empty';
+  } else if (!somethingRE.test(name)) {
+    errMsg = 'Name field cannot be all whitespace';
+  }
+
+  return fieldValidSwitch(conditional, nameField, errMsg);
 };
 
 const emailValidate = () => {
@@ -156,7 +205,16 @@ const emailValidate = () => {
    * At least one not-@ symbol, followed by '@', followed by at least one not-@ and not-., followed by '.com'
    */
   const emailRE = /^[^@]+@[^@.]+\.com$/;
-  return emailRE.test(emailField.value);
+  const conditional = emailRE.test(emailField.value);
+  let errMsg = null;
+
+  if (!(emailField.value.length > 0)) {
+    errMsg = 'Email field cannot be empty';
+  } else if (!emailRE.test(emailField.value)) {
+    errMsg = "Email must be a valid '.com' address";
+  }
+
+  return fieldValidSwitch(conditional, emailField, errMsg);
 };
 
 const activitiesValidate = () => {
@@ -164,8 +222,9 @@ const activitiesValidate = () => {
    * Confirm that at least one activities checkbox is checked
    */
   const isChecked = (cb) => cb.checked === true;
+  const conditional = [...activitiesCheckboxes].some(isChecked);
 
-  return [...activitiesCheckboxes].some(isChecked);
+  return fieldValidSwitch(conditional, activitiesBox);
 };
 
 const cardNumberValidate = () => {
@@ -173,7 +232,9 @@ const cardNumberValidate = () => {
    * CC num should be 13-16 digits, nothing else.
    */
   const ccRE = /^\d{13,16}$/;
-  return ccRE.test(ccNum.value);
+  const conditional = ccRE.test(ccNum.value);
+
+  return fieldValidSwitch(conditional, ccNum);
 };
 
 const zipCodeValidate = () => {
@@ -181,7 +242,9 @@ const zipCodeValidate = () => {
    * CC zip should be 5 digits, nothing else.
    */
   const zipRE = /^\d{5}$/;
-  return zipRE.test(ccZip.value);
+  const conditional = zipRE.test(ccZip.value);
+
+  return fieldValidSwitch(conditional, ccZip);
 };
 
 const cvvValidate = () => {
@@ -189,7 +252,9 @@ const cvvValidate = () => {
    * CC cvv should be 3 digits, nothing else.
    */
   const cvvRE = /^\d{3}$/;
-  return cvvRE.test(ccCVV.value);
+  const conditional = cvvRE.test(ccCVV.value);
+
+  return fieldValidSwitch(conditional, ccCVV);
 };
 
 const creditValidate = () => {
@@ -202,24 +267,15 @@ const creditValidate = () => {
   let retval = true;
 
   if (!cardNumberValidate()) {
-    showFieldError(ccNum);
     retval = false;
-  } else {
-    showFieldSuccess(ccNum);
   }
 
   if (!zipCodeValidate()) {
-    showFieldError(ccZip);
     retval = false;
-  } else {
-    showFieldSuccess(ccZip);
   }
 
   if (!cvvValidate()) {
-    showFieldError(ccCVV);
     retval = false;
-  } else {
-    showFieldSuccess(ccCVV);
   }
 
   return retval;
@@ -230,23 +286,14 @@ form.addEventListener('submit', (e) => {
 
   if (!nameValidate()) {
     e.preventDefault();
-    showFieldError(nameField);
-  } else {
-    showFieldSuccess(nameField);
   }
 
   if (!emailValidate()) {
     e.preventDefault();
-    showFieldError(emailField);
-  } else {
-    showFieldSuccess(emailField);
   }
 
   if (!activitiesValidate()) {
     e.preventDefault();
-    showFieldError(activitiesBox);
-  } else {
-    showFieldSuccess(activitiesBox);
   }
 
   // If the payment method is not "credit-card", the creditValidate() function will not run
@@ -255,6 +302,20 @@ form.addEventListener('submit', (e) => {
     e.preventDefault();
   }
 });
+
+// Add Event Listening for all form events that need to be validated, so that the user receives instantaneous feedback at every change
+// 1) Add event listener on 'input' for when changes are made to the input field
+nameField.addEventListener('input', nameValidate);
+emailField.addEventListener('input', emailValidate);
+ccNum.addEventListener('input', cardNumberValidate);
+ccZip.addEventListener('input', zipCodeValidate);
+ccCVV.addEventListener('input', cvvValidate);
+// 2) Add event listener on 'blur' for when the user leaves that field (in case they try to tab through or skip a field without entering a value)
+nameField.addEventListener('blur', nameValidate);
+emailField.addEventListener('blur', emailValidate);
+ccNum.addEventListener('blur', cardNumberValidate);
+ccZip.addEventListener('blur', zipCodeValidate);
+ccCVV.addEventListener('blur', cvvValidate);
 /////////////// END FORM VALIDATION /////////////
 
 // Program all of the activity checkbox input elements to listen for the focus and blur events.
