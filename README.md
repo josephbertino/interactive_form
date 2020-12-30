@@ -1,18 +1,17 @@
 # js interactive_form
-##### Author: Joe Bertino 2020
----
-#### Javascript project demonstrating an interactive form with regex input validation
 
-Mockup of an event registration form, complete with T-Shirt ordering, activity selecting, and credit card payment fields.
-  * Complete with customized and conditional behavior and interactivity
+### Javascript project demonstrating an interactive form with regex input validation
+
+Mockup of an event registration form, complete with T-shirt ordering, activity selecting, and credit card payment fields.
+  * Built with customized, conditional behavior and interactivity
   * Validates user input and provides helpful error messages when the user enters invalid information into the form fields.
 
-#### Activity Registration Extra Functionality
+#### Activity Registration
 (For the "Exceed Expectations" Task)
 
 In order to prevent the user from registering for conflicting activities, the form dynamically enables/disables simultaneously-occurring activities from being selected based on the currently selected activities.
 
-#### Form Validation Extra Functionality
+#### Form Validation
 (For the "Exceed Expectations" Task)
 
 The following fields provide instantaneous feedback to the user about the validity of their input:
@@ -31,4 +30,4 @@ The following fields provide conditional error messages on the validity of the u
  * If the name field only contains whitespace
 * Email
  * If the email field is empty
- * If the email field does not have a properly formatted address
+ * If the email address is not properly formatted
