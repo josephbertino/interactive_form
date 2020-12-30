@@ -17,6 +17,7 @@ In order to prevent the user from registering for conflicting activities, the fo
 The following fields provide instantaneous feedback to the user about the validity of their input:
 * Name
 * Email
+* Activities Box
 * Credit Card Number
 * Credit Card Zip Code
 * Credit Card CVV

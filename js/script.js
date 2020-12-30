@@ -307,6 +307,7 @@ form.addEventListener('submit', (e) => {
 // 1) Add event listener on 'input' for when changes are made to the input field
 nameField.addEventListener('input', nameValidate);
 emailField.addEventListener('input', emailValidate);
+activitiesBox.addEventListener('change', activitiesValidate);
 ccNum.addEventListener('input', cardNumberValidate);
 ccZip.addEventListener('input', zipCodeValidate);
 ccCVV.addEventListener('input', cvvValidate);
@@ -320,13 +321,11 @@ ccCVV.addEventListener('blur', cvvValidate);
 
 // Program all of the activity checkbox input elements to listen for the focus and blur events.
 [...activitiesCheckboxes].forEach((cb) => {
-  cb.addEventListener('focus', (e) => {
-    const parLabel = e.target.parentElement;
-    parLabel.classList.add('focus');
+  cb.addEventListener('focus', function () {
+    this.parentElement.classList.add('focus');
   });
 
-  cb.addEventListener('blur', (e) => {
-    const parLabel = e.target.parentElement;
-    parLabel.classList.remove('focus');
+  cb.addEventListener('blur', function () {
+    this.parentElement.classList.remove('focus');
   });
 });
